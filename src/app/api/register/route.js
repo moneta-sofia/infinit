@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import nodemailer from "nodemailer";
-import NextCors from "nextjs-cors";
+
 const prisma = new PrismaClient();
 
 const transporter = nodemailer.createTransport({
@@ -17,30 +17,21 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function POST(request) {
-  await NextCors(req, res, {
-    // Options
-    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
-    origin: "*",
-    optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
-  });
+  try {
+    const body = await request.json();
+    const { email, password } = body;
 
-  const body = await request.json();
+    console.log("body", body);
 
-  const { email, password } = body;
-
-  console.log("body", body);
-
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  if (existingUser) {
-    return NextResponse.json(
-      {
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      const response = NextResponse.json({
         message: "There is already a user with that email",
-      },
-      {
-        status: 400,
-      }
-    );
-  } else {
+      }, { status: 400 });
+      response.headers.set("Access-Control-Allow-Origin", "*");
+      return response;
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await prisma.user.create({
       data: {
@@ -76,15 +67,26 @@ export async function POST(request) {
         console.error("Error sending registration confirmation email:", error);
       }
 
-      return NextResponse.json({
+      const response = NextResponse.json({
         message: "User registered successfully",
         user: newUser,
       });
+      response.headers.set("Access-Control-Allow-Origin", "*");
+      return response;
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       message: "Error creating user",
       status: 500,
     });
+    response.headers.set("Access-Control-Allow-Origin", "*");
+    return response;
+  } catch (error) {
+    console.error("Error in POST /api/register:", error);
+    const response = NextResponse.json({
+      error: "Internal server error",
+    }, { status: 500 });
+    response.headers.set("Access-Control-Allow-Origin", "*");
+    return response;
   }
 }
