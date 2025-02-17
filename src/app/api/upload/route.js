@@ -4,9 +4,9 @@ import { env } from "process";
 const multer = require("multer");
 
 const s3Client = new S3Client({
-  secretAccessKey: env(AWS_SECRET_ACCESS_KEY),
-  accessKeyId: env(AWS_ACCESS_KEY_ID),
-  region: env(AWS_REGION),
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  region: process.env.S3_REGION
 });
 
 /*export const config = {
@@ -37,15 +37,15 @@ export async function POST(req, context) {
       const fileBuffer = await file.arrayBuffer();
 
       const params = {
-        Bucket: "c6-pi-grupo3",
+        Bucket: process.env.S3_BUCKET,
         Key: key,
         Body: fileBuffer,
         ContentType: mimetype,
       };
 
       await s3Client.send(new PutObjectCommand(params));
+      const objectUrl = `https://${process.env.S3_BUCKET}.s3.amazonaws.com/${key}`;
 
-      const objectUrl = `https://c6-pi-grupo3.s3.amazonaws.com/${key}`;
       uploadUrls.push({ image: objectUrl }); // Push an object with an "image" attribute
     }
 
